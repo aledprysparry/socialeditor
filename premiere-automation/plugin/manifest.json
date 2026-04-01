@@ -1,0 +1,33 @@
+{
+  "id": "com.capsiynau.infostudio.premiere",
+  "name": "Infographic Studio",
+  "version": "1.0.0",
+  "manifestVersion": 6,
+  "main": "index.html",
+  "host": [
+    {
+      "app": "premierepro",
+      "minVersion": "25.0"
+    }
+  ],
+  "entrypoints": [
+    {
+      "type": "panel",
+      "id": "infostudioPanel",
+      "label": "Infographic Studio",
+      "minimumSize": { "width": 320, "height": 400 },
+      "preferredDockedSize": { "width": 380, "height": 700 },
+      "preferredFloatingSize": { "width": 400, "height": 750 }
+    }
+  ],
+  "icons": [
+    { "width": 24, "height": 24, "path": "icons/icon_24.png", "scale": [1, 2], "theme": ["all"] }
+  ],
+  "requiredPermissions": {
+    "localFileSystem": "fullAccess",
+    "clipboard": "readAndWrite",
+    "network": {
+      "domains": []
+    }
+  }
+}
