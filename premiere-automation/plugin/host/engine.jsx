@@ -252,8 +252,8 @@ function validateManifest(manifestPath) {
                 result.errors.push(prefix + "startFrame must be a number");
             }
 
-            // Track mapping
-            var trackNum = parseTrack(item.track);
+            // Track mapping — use manifest.tracks for named lookups
+            var trackNum = resolveTrack(item.track, manifest.tracks);
             trackSet["V" + (trackNum + 1)] = true;
 
             // Check folder exists
@@ -783,15 +783,33 @@ function ingestMedia(manifestPath) {
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Parse track identifiers: "V2" → 1 (0-indexed), 3 → 3
+ * Resolve a track identifier to a 0-based index.
+ *
+ * Supports:
+ *   - Number:       3         → 3
+ *   - V-string:     "V2"      → 1 (0-indexed)
+ *   - Named track:  "fullscreen" → looks up in manifest.tracks map
+ *
+ * The trackMap comes from manifest.tracks, e.g.:
+ *   { "footage": 1, "fullscreen": 2, "overlay": 3 }
+ *   Values in the map are 1-based (human-friendly), converted to 0-based here.
  */
-function parseTrack(track) {
+function resolveTrack(track, trackMap) {
+    // Direct number
     if (typeof track === "number") return track;
+
     if (typeof track === "string") {
+        // Named track lookup (e.g. "fullscreen" → manifest.tracks.fullscreen → 2 → index 1)
+        if (trackMap && trackMap[track] !== undefined) {
+            return trackMap[track] - 1; // manifest values are 1-based
+        }
+        // V-string (e.g. "V2" → index 1)
         var match = track.match(/[Vv](\d+)/);
-        if (match) return parseInt(match[1], 10) - 1; // V2 → index 1
+        if (match) return parseInt(match[1], 10) - 1;
+        // Bare number string
         return parseInt(track, 10) || 1;
     }
+
     return 1;
 }
 
@@ -836,7 +854,7 @@ function buildTimeline(manifestPath, ingestResultJSON) {
     // Find highest track needed
     var maxTrackIdx = 0;
     for (var i = 0; i < items.length; i++) {
-        var tidx = parseTrack(items[i].track);
+        var tidx = resolveTrack(items[i].track, manifest.tracks);
         if (tidx > maxTrackIdx) maxTrackIdx = tidx;
     }
 
@@ -925,7 +943,7 @@ function buildTimeline(manifestPath, ingestResultJSON) {
             continue;
         }
 
-        var trackIdx = parseTrack(item.track);
+        var trackIdx = resolveTrack(item.track, manifest.tracks);
         var startSec = (item.startFrame || 0) / fps;
         var durationSec = (item.durationFrames || 50) / fps;
         var itemTypeLower = (item.type || "fullscreen").toLowerCase();

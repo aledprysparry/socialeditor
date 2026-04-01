@@ -5,86 +5,63 @@
   <link rel="stylesheet" href="css/panel.css"/>
 </head>
 <body>
-  <div class="panel">
 
-    <!-- Header -->
-    <div class="header">
+  <header>
+    <div class="header-left">
+      <div class="brand-mark">IS</div>
       <h1>Infographic Studio</h1>
-      <span class="version">v1.0</span>
     </div>
+    <span class="status-pill" id="status">Idle</span>
+  </header>
 
-    <!-- Step 1: Load Manifest -->
-    <div class="card" id="step1">
-      <div class="card-header">
-        <div class="step-num active" id="step1-num">1</div>
-        <h2>Load Manifest</h2>
-        <span class="status status-pending" id="step1-status">Ready</span>
-      </div>
-      <div class="btn-row" style="margin-bottom:8px">
-        <button class="btn btn-primary" id="btn-load">Select manifest.json</button>
-      </div>
-      <div class="file-path hidden" id="manifest-path">No file selected</div>
+  <!-- Step 1: Select folder -->
+  <section class="card">
+    <div class="card-row">
+      <button class="btn btn-primary" id="selectFolder">Select Export Folder</button>
     </div>
+    <div class="file-path" id="folderPath">No folder selected</div>
+  </section>
 
-    <!-- Step 2: Validate -->
-    <div class="card" id="step2">
-      <div class="card-header">
-        <div class="step-num" id="step2-num">2</div>
-        <h2>Validate</h2>
-        <span class="status status-pending" id="step2-status">Waiting</span>
-      </div>
-      <div class="stat-grid hidden" id="val-stats">
-        <div class="stat-item"><div class="value" id="val-total">0</div><div class="label">Items</div></div>
-        <div class="stat-item"><div class="value" id="val-valid">0</div><div class="label">Valid</div></div>
-        <div class="stat-item"><div class="value" id="val-fps">25</div><div class="label">FPS</div></div>
-        <div class="stat-item"><div class="value" id="val-tracks">0</div><div class="label">Tracks</div></div>
-      </div>
-      <ul class="issue-list hidden" id="val-issues"></ul>
+  <!-- Step 2: Load manifest -->
+  <section class="card">
+    <div class="card-row">
+      <button class="btn" id="loadManifest">Load Manifest</button>
+      <span class="meta" id="manifestStatus">Not loaded</span>
     </div>
-
-    <!-- Step 3: Import Media -->
-    <div class="card" id="step3">
-      <div class="card-header">
-        <div class="step-num" id="step3-num">3</div>
-        <h2>Import Media</h2>
-        <span class="status status-pending" id="step3-status">Waiting</span>
-      </div>
-      <div class="btn-row hidden" id="import-controls">
-        <button class="btn btn-primary" id="btn-import">Import Sequences</button>
-      </div>
-      <div class="stat-grid hidden" id="import-stats">
-        <div class="stat-item"><div class="value" id="imp-done">0</div><div class="label">Imported</div></div>
-        <div class="stat-item"><div class="value" id="imp-failed">0</div><div class="label">Failed</div></div>
-      </div>
+    <div class="stat-row hidden" id="manifestStats">
+      <div class="stat"><span class="stat-val" id="m-items">0</span><span class="stat-label">Items</span></div>
+      <div class="stat"><span class="stat-val" id="m-fps">25</span><span class="stat-label">FPS</span></div>
+      <div class="stat"><span class="stat-val" id="m-res">1920x1080</span><span class="stat-label">Res</span></div>
+      <div class="stat"><span class="stat-val" id="m-tracks">0</span><span class="stat-label">Tracks</span></div>
     </div>
+  </section>
 
-    <!-- Step 4: Build Timeline -->
-    <div class="card" id="step4">
-      <div class="card-header">
-        <div class="step-num" id="step4-num">4</div>
-        <h2>Build Timeline</h2>
-        <span class="status status-pending" id="step4-status">Waiting</span>
-      </div>
-      <div class="btn-row hidden" id="timeline-controls">
-        <button class="btn btn-primary" id="btn-timeline">Place on Timeline</button>
-      </div>
-      <div class="stat-grid hidden" id="timeline-stats">
-        <div class="stat-item"><div class="value" id="tl-placed">0</div><div class="label">Placed</div></div>
-        <div class="stat-item"><div class="value" id="tl-failed">0</div><div class="label">Failed</div></div>
-      </div>
+  <!-- Step 3: Actions -->
+  <section class="card actions-card">
+    <button class="btn btn-action" id="validate" disabled>Validate</button>
+    <button class="btn btn-action btn-accent" id="import" disabled>Import Sequences</button>
+    <button class="btn btn-action btn-accent" id="build" disabled>Build Timeline</button>
+  </section>
+
+  <!-- Results -->
+  <section class="card hidden" id="resultsCard">
+    <h3>Results</h3>
+    <div class="stat-row" id="resultStats">
+      <div class="stat"><span class="stat-val ok" id="r-ok">0</span><span class="stat-label">OK</span></div>
+      <div class="stat"><span class="stat-val warn" id="r-warn">0</span><span class="stat-label">Warn</span></div>
+      <div class="stat"><span class="stat-val fail" id="r-fail">0</span><span class="stat-label">Failed</span></div>
     </div>
+    <ul class="item-list" id="itemList"></ul>
+  </section>
 
-    <!-- Step 5: Report -->
-    <div class="card hidden" id="step5">
-      <div class="card-header">
-        <div class="step-num done" id="step5-num">5</div>
-        <h2>Report</h2>
-        <span class="status status-done" id="step5-status">Complete</span>
-      </div>
-      <div class="log-area" id="report-log"></div>
+  <!-- Log -->
+  <section class="card">
+    <div class="card-row">
+      <h3>Log</h3>
+      <button class="btn btn-sm btn-ghost" id="clearLog">Clear</button>
     </div>
-
-  </div>
+    <pre class="log-area" id="log"></pre>
+  </section>
 
   <script src="js/panel.js"></script>
 </body>

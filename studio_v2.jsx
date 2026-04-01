@@ -860,7 +860,7 @@ function generatePremiereManifest(project, brand, selectedGfx, ratio, fps=PREMIE
       id:`gfx_${String(i+1).padStart(3,"0")}`,
       name:`${String(i+1).padStart(2,"0")} ${(g.label||g.template).replace(/-/g," ")}`,
       folder:folderName,
-      track:g.type==="overlay"?"V3":"V2",
+      track:g.type==="overlay"?"overlay":"fullscreen",
       startFrame:timestampToFrame(g.timestamp,fps),
       durationFrames:Math.ceil(durSec*fps),
       type:g.type||"fullscreen"
@@ -872,6 +872,7 @@ function generatePremiereManifest(project, brand, selectedGfx, ratio, fps=PREMIE
     fps,
     resolution:{width:AR.W,height:AR.H},
     graphicsRoot:".",
+    tracks:{footage:1,fullscreen:2,overlay:3,captions:4},
     items
   };
 }
