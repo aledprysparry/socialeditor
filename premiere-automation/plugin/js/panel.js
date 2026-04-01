@@ -32,6 +32,68 @@
   // This abstracts the host communication so we can swap implementations
 
   var scriptBridge = {
+    _engineLoaded: false,
+    _bridge: null,  // "uxp" | "cep" | null
+
+    /**
+     * Resolve the path to engine.jsx relative to the plugin folder.
+     * Works for both UXP and CEP layouts.
+     */
+    _enginePath: function () {
+      // UXP: plugin folder from manifest
+      if (typeof require !== "undefined") {
+        try {
+          var path = require("path");
+          var uxpPlugin = require("uxp").entrypoints;
+          // __dirname equivalent in UXP
+          return path.join(__dirname, "host", "engine.jsx");
+        } catch (e) {}
+      }
+      // CEP: resolve from extension root
+      if (typeof CSInterface !== "undefined") {
+        var cs = new CSInterface();
+        return cs.getSystemPath(SystemPath.EXTENSION) + "/host/engine.jsx";
+      }
+      // Fallback: assume standard plugin layout
+      return "./host/engine.jsx";
+    },
+
+    /**
+     * Load engine.jsx into the Premiere host.
+     * Must be called once before any run() calls.
+     * Safe to call multiple times (no-ops after first load).
+     */
+    loadEngine: function () {
+      if (this._engineLoaded) {
+        return Promise.resolve(true);
+      }
+
+      var self = this;
+      var enginePath = this._enginePath();
+
+      // The key call: $.evalFile() loads the JSX into the host's
+      // ExtendScript engine, making all functions available.
+      return this.eval('$.evalFile("' + enginePath.replace(/\\/g, "\\\\") + '")').then(
+        function () {
+          self._engineLoaded = true;
+          console.log("[panel] Engine loaded from: " + enginePath);
+          return true;
+        },
+        function (err) {
+          console.error("[panel] Failed to load engine: " + err);
+          // Try without path (engine may already be loaded or user ran it manually)
+          return self.eval("typeof validateManifest").then(function (result) {
+            if (result === "function") {
+              self._engineLoaded = true;
+              console.log("[panel] Engine already loaded in host");
+              return true;
+            }
+            throw new Error("Engine not available: " + err.message);
+          });
+        }
+      );
+    },
+
     /**
      * Evaluate an ExtendScript expression in the Premiere host.
      * Returns a Promise that resolves with the string result.
@@ -39,14 +101,24 @@
     eval: function (script) {
       return new Promise(function (resolve, reject) {
         try {
-          // UXP approach: require('premierepro') or use uxp scripting
+          // UXP approach
           if (typeof require !== "undefined") {
-            // Try UXP script execution
-            var ppro = require("premierepro");
-            if (ppro && ppro.host && ppro.host.evalScript) {
-              ppro.host.evalScript(script).then(resolve).catch(reject);
-              return;
-            }
+            try {
+              var ppro = require("premierepro");
+              if (ppro && ppro.host && ppro.host.evalScript) {
+                ppro.host.evalScript(script).then(resolve).catch(reject);
+                return;
+              }
+            } catch (e) {}
+
+            // UXP alternate: script module
+            try {
+              var uxp = require("uxp");
+              if (uxp.host && uxp.host.evalScript) {
+                uxp.host.evalScript(script).then(resolve).catch(reject);
+                return;
+              }
+            } catch (e) {}
           }
 
           // CEP fallback
@@ -62,14 +134,7 @@
             return;
           }
 
-          // Direct ExtendScript (if running inside host)
-          if (typeof $ !== "undefined" && $.evalFile) {
-            var result = eval(script);
-            resolve(String(result));
-            return;
-          }
-
-          reject(new Error("No script bridge available"));
+          reject(new Error("No script bridge available — open this panel inside Premiere Pro"));
         } catch (e) {
           reject(e);
         }
@@ -78,15 +143,25 @@
 
     /**
      * Run a named function from engine.jsx with arguments.
+     * Automatically loads the engine if not yet loaded.
      * Serialises arguments as JSON strings.
      */
     run: function (fnName, args) {
+      var self = this;
       var argStr = (args || []).map(function (a) {
         if (typeof a === "string") return "'" + a.replace(/\\/g, "\\\\").replace(/'/g, "\\'") + "'";
         return JSON.stringify(a);
       }).join(", ");
 
       var script = fnName + "(" + argStr + ")";
+
+      // Ensure engine is loaded before calling any function
+      if (!this._engineLoaded) {
+        return this.loadEngine().then(function () {
+          return self.eval(script);
+        });
+      }
+
       return this.eval(script);
     }
   };
