@@ -101,9 +101,16 @@ const emptyState = (overrides) => ({
   textAlign: "center", padding: `${DS.xxl}px 0`, color: DS.textMuted, ...overrides,
 });
 
+// ── API base URL ─────────────────
+// When hosted on GitHub Pages, API calls go to aledparry.com.
+// When hosted on aledparry.com directly, relative paths work.
+const API_BASE=window.location.hostname.includes("github.io")
+  ?"https://www.aledparry.com"
+  :"";
+
 // ── AI helper: route through server-side proxy ─────────────────
 async function callAI({system,messages,max_tokens=2500}){
-  const res=await fetch("/api/ai",{
+  const res=await fetch(API_BASE+"/api/ai",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({system,messages,max_tokens,model:"claude-sonnet-4-20250514"})
@@ -2022,13 +2029,26 @@ function TitleCardPanel({project, brand, updateProject}){
 // ═══════════════════════════════════════════════════════════════
 //  PROJECT VIEW
 // ═══════════════════════════════════════════════════════════════
-function ProjectView({project,brand,updateProject,onBack}){
+function ProjectView({project,brand,updateProject,onBack,onSave}){
   const [tab,setTab]=useState("graphics");
   const [previewRatio,setPreviewRatio]=useState("16:9");
   const [editingName,setEditingName]=useState(false);
   const [nameDraft,setNameDraft]=useState(project.name);
+  const [saveState,setSaveState]=useState("idle"); // idle | saving | saved | error
   const nameRef=useRef();
   const fileRef=useRef();
+
+  const handleSave=async()=>{
+    setSaveState("saving");
+    try{
+      const ok=await onSave();
+      setSaveState(ok?"saved":"error");
+      setTimeout(()=>setSaveState("idle"),2500);
+    }catch{
+      setSaveState("error");
+      setTimeout(()=>setSaveState("idle"),3000);
+    }
+  };
   // API key check removed — server-side proxy handles AI calls
 
   const handleSRT=f=>{
@@ -2071,6 +2091,21 @@ function ProjectView({project,brand,updateProject,onBack}){
           {Object.keys(RATIOS).map(k=>(
             <button key={k} style={btn({background:previewRatio===k?DS.borderActive:DS.bgButton,fontSize:11,padding:"4px 8px",fontWeight:previewRatio===k?700:500})} onClick={()=>setPreviewRatio(k)}>{k}</button>
           ))}
+          <div style={{width:1,height:18,background:"rgba(255,255,255,0.15)",margin:"0 4px"}}/>
+          <button
+            style={btn({
+              fontSize:11,padding:"5px 12px",
+              background:saveState==="saved"?"rgba(42,157,143,0.2)":saveState==="error"?"rgba(230,57,70,0.2)":saveState==="saving"?"rgba(255,200,50,0.15)":"rgba(255,255,255,0.06)",
+              border:`1px solid ${saveState==="saved"?"rgba(42,157,143,0.4)":saveState==="error"?"rgba(230,57,70,0.4)":"rgba(255,255,255,0.15)"}`,
+              color:saveState==="saved"?"#2A9D8F":saveState==="error"?"#E63946":"#fff",
+              cursor:saveState==="saving"?"wait":"pointer",
+              transition:"all 0.2s"
+            })}
+            onClick={handleSave}
+            disabled={saveState==="saving"}
+            title="Save project to server">
+            {saveState==="saving"?"Saving...":saveState==="saved"?"Saved":saveState==="error"?"Failed":"Save"}
+          </button>
         </div>
       </div>
 
@@ -2566,7 +2601,7 @@ function StyleExtractor({onExtracted,S}){
       });
       content.push({type:"text",text:EXTRACTION_PROMPT});
 
-      const resp=await fetch("/api/ai",{
+      const resp=await fetch(API_BASE+"/api/ai",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({
@@ -3274,7 +3309,7 @@ function Home({brands,projects,onNewBrand,onEditBrand,onOpenProject,onNewProject
             <button onClick={async()=>{
               if(showVersions){setShowVersions(false);return;}
               setVersions([]);setShowVersions(true);
-              try{const r=await fetch("/api/studio?versions=1");const d=await r.json();setVersions(d.versions||[]);}catch{setVersions([]);}
+              try{const r=await fetch(API_BASE+"/api/studio?versions=1");const d=await r.json();setVersions(d.versions||[]);}catch{setVersions([]);}
             }} style={btn({background:showVersions?DS.borderMedium:DS.bgInput,padding:"6px 12px",fontSize:11})}>📂 Versions {showVersions?"▲":"▼"}</button>
             {showVersions&&(
               <div style={modalBox({position:"absolute",top:"100%",right:0,marginTop:6,minWidth:280,maxHeight:320,overflowY:"auto",zIndex:999,boxShadow:"0 8px 32px rgba(0,0,0,0.5)",padding:0})}>
@@ -3286,7 +3321,7 @@ function Home({brands,projects,onNewBrand,onEditBrand,onOpenProject,onNewProject
                   return(
                     <div key={i} onClick={async()=>{
                       setSaveStatus("Loading...");setShowVersions(false);
-                      try{const lr=await fetch("/api/studio?load="+encodeURIComponent(v.pathname));const ld=await lr.json();
+                      try{const lr=await fetch(API_BASE+"/api/studio?load="+encodeURIComponent(v.pathname));const ld=await lr.json();
                         if(ld.brands){onLoadVersion(ld);setSaveStatus("Loaded!");}else setSaveStatus("Failed");
                       }catch{setSaveStatus("Error");}setTimeout(()=>setSaveStatus(""),2000);
                     }} style={{padding:`${DS.md}px ${DS.lg}px`,cursor:"pointer",borderBottom:`1px solid ${DS.borderSubtle}`,transition:"background 0.15s"}}
@@ -3411,7 +3446,7 @@ function App(){
 
   // ── Server sync: load on mount ──
   useEffect(()=>{
-    fetch("/api/studio").then(r=>r.json()).then(d=>{
+    fetch(API_BASE+"/api/studio").then(r=>r.json()).then(d=>{
       if(d.brands?.length){setBrands(d.brands);save(BS,d.brands);}
       if(d.projects?.length){setProjects(d.projects);save(PS,d.projects);}
       if(d.templates?.length) save(TMPL_STORE,d.templates);
@@ -3423,7 +3458,7 @@ function App(){
     if(syncTimer.current) clearTimeout(syncTimer.current);
     syncTimer.current=setTimeout(()=>{
       const templates=load(TMPL_STORE);
-      fetch("/api/studio",{method:"POST",headers:{"Content-Type":"application/json"},
+      fetch(API_BASE+"/api/studio",{method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({brands:b,projects:p,templates})}).catch(()=>{});
     },1500);
   },[]);
@@ -3468,6 +3503,11 @@ function App(){
         brand={activeBrand}
         updateProject={updateProject}
         onBack={()=>{setView("home");pushHash("home");}}
+        onSave={()=>{
+          const templates=load(TMPL_STORE);
+          return fetch(API_BASE+"/api/studio",{method:"POST",headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({brands,projects,templates})}).then(r=>r.ok).catch(()=>false);
+        }}
       />
     );
   }
