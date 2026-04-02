@@ -14,33 +14,31 @@
     <span class="status-pill" id="status">Idle</span>
   </header>
 
-  <!-- Step 1: Select folder -->
+  <!-- Step 1: Select folder (auto-loads manifest) -->
   <section class="card">
     <div class="card-row">
       <button class="btn btn-primary" id="selectFolder">Select Export Folder</button>
     </div>
     <div class="file-path" id="folderPath">No folder selected</div>
-  </section>
-
-  <!-- Step 2: Load manifest -->
-  <section class="card">
-    <div class="card-row">
-      <button class="btn" id="loadManifest">Load Manifest</button>
-      <span class="meta" id="manifestStatus">Not loaded</span>
-    </div>
     <div class="stat-row hidden" id="manifestStats">
       <div class="stat"><span class="stat-val" id="m-items">0</span><span class="stat-label">Items</span></div>
       <div class="stat"><span class="stat-val" id="m-fps">25</span><span class="stat-label">FPS</span></div>
       <div class="stat"><span class="stat-val" id="m-res">1920x1080</span><span class="stat-label">Res</span></div>
       <div class="stat"><span class="stat-val" id="m-tracks">0</span><span class="stat-label">Tracks</span></div>
     </div>
+    <div class="meta" id="manifestStatus"></div>
   </section>
 
-  <!-- Step 3: Actions -->
+  <!-- Step 2-4: Actions -->
   <section class="card actions-card">
     <button class="btn btn-action" id="validate" disabled>Validate</button>
-    <button class="btn btn-action btn-accent" id="import" disabled>Import Sequences</button>
+    <button class="btn btn-action btn-accent" id="import" disabled>Import</button>
     <button class="btn btn-action btn-accent" id="build" disabled>Build Timeline</button>
+  </section>
+
+  <!-- Retry -->
+  <section class="card" style="padding:6px 12px">
+    <button class="btn btn-sm btn-ghost" id="retry" disabled style="width:100%">Retry Failed Items</button>
   </section>
 
   <!-- Results -->
