@@ -1366,7 +1366,16 @@ function GraphicsTab({project,brand,updateProject,previewRatio}){
   },[brand,previewRatio]);
 
   const previewAll=useCallback(()=>{
-    graphics.forEach((g,i)=>{drawGraphic(cvs.current,g,brand,previewRatio,1);setPreviews(p=>({...p,[i]:cvs.current.toDataURL("image/png")}));});
+    // Draw all graphics first, collect dataURLs, then set state ONCE.
+    // (Setting state inside a loop causes batching — all 54 calls
+    // resolve against the same stale previews object, so only the
+    // last graphic's image survives.)
+    const urls={};
+    graphics.forEach((g,i)=>{
+      drawGraphic(cvs.current,g,brand,previewRatio,1);
+      urls[i]=cvs.current.toDataURL("image/png");
+    });
+    updateProject({previews:urls});
   },[graphics,brand,previewRatio]);
 
   const exportWebM=async(g,i)=>{
