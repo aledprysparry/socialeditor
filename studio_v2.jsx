@@ -599,6 +599,40 @@ function drawGraphic(canvas,g,brand,ratio,progress=1){
     });
     ctx.restore();
   }
+  else {
+    // ── FALLBACK: unrecognised template ──
+    // Render as a generic fullscreen card so it's visible, not transparent.
+    // This catches AI-invented templates like title_card, lower_third,
+    // landlord_ask, tenant_ask, advice, subscribe, endboard, etc.
+    if(!isOverlay){ctx.fillStyle=B.colorPrimary;ctx.fillRect(0,0,W,H);
+      ctx.save();ctx.globalAlpha=0.04;for(let i=0;i<W;i+=3){for(let j=0;j<H;j+=3){if(Math.random()>0.5){ctx.fillStyle="#fff";ctx.fillRect(i,j,2,2);}}}ctx.restore();
+    }
+    // Template label pill
+    const lbl=(t||"graphic").toUpperCase().replace(/_/g," ");
+    ctx.save();ctx.globalAlpha=ENT*0.6;
+    ctx.font=`700 ${Math.round(28*sc)}px "${FF}","Arial",sans-serif`;
+    const lw=ctx.measureText(lbl).width;
+    ctx.fillStyle="rgba(0,0,0,0.3)";rrPath(ctx,W/2-lw/2-20*sc,H*0.22,lw+40*sc,48*sc,24*sc);ctx.fill();
+    ctx.fillStyle="#fff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(lbl,W/2,H*0.22+24*sc);ctx.restore();
+    // Accent rule
+    const rW=Math.round(60*sc)*ENT;
+    ctx.fillStyle=B.colorAccent;ctx.fillRect(W/2-rW/2,H*0.32,rW,Math.round(4*sc));
+    // Body text: use whatever content fields are available
+    const allText=Object.values(c).filter(v=>typeof v==="string"&&v.length>0);
+    const mainText=allText[0]||"";
+    const subText=allText.slice(1).join(" — ");
+    if(mainText){
+      ctx.save();ctx.globalAlpha=TXT;
+      DT(mainText,W/2,H*0.36,W-PAD*2,H*0.28,Math.round(72*sc),"HW","center","#fff",3);
+      ctx.restore();
+    }
+    if(subText){
+      ctx.save();ctx.globalAlpha=TXT*0.65;
+      DT(subText,W/2,H*0.68,W-PAD*2,H*0.15,Math.round(36*sc),"500","center","rgba(255,255,255,0.8)",2);
+      ctx.restore();
+    }
+    stamp(ctx,B,W,H);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
